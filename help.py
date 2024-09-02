@@ -6,4 +6,4 @@ import os
 # from talipp.indicators import RSI
 import pandas_ta as ta
 
-print(help(ta.psar))
+print(f"{help(ta.psar)} \n \n {help(ta.ichimoku)}")

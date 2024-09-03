@@ -29,7 +29,7 @@ for stock in stock_dataframes:
     df['MACD'], df['MACD_Signal'], df['MACD_Histogram'] = ta.macd(df['Close'], fast=12, slow=26, signal=9).iloc[:, 0:3].T.values
 
     bbands_df = ta.bbands(df['Close'], length=20, std=2)
-    # df = pd.concat([df, bbands_df], axis=1)
+    stock['bbands_df'] = bbands_df
 
     psar_df = ta.psar(df['High'], df['Low'], df['Close'], af=0.02, max_af=0.2)
     stock["psar_df"] = psar_df
@@ -50,9 +50,11 @@ for stock in stock_dataframes:
     ichimoku_df_current = stock["ichimoku_df_current"]
     ichimoku_df_future = stock["ichimoku_df_future"]
     psar_df = stock["psar_df"]
+    bbands_df = stock["bbands_df"]
     os.mkdir(f"./output/{stockname}")
-    df.to_csv(f"./output/{stockname}/rsimacdbbands.csv", index=True)
+    df.to_csv(f"./output/{stockname}/rsimacd_df.csv", index=True)
     ichimoku_df_current.to_csv(f"./output/{stockname}/ichimoku_df_current.csv", index=True)
     ichimoku_df_future.to_csv(f"./output/{stockname}/ichimoku_df_future.csv", index=True)
     psar_df.to_csv(f"./output/{stockname}/psar_df.csv", index=True)
+    bbands_df.to_csv(f"./output/{stockname}/bbands_df.csv", index=True)
 

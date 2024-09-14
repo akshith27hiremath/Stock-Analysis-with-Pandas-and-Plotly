@@ -1,5 +1,6 @@
 import pandas as pd
 import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 import os
 
 stock_dataset_filenames = [file for file in os.listdir("./datasets") if file.endswith('.csv')]
@@ -12,26 +13,36 @@ for name in stock_names:
     output = {}
     output["name"] = name
     output["rm"] = pd.read_csv(f"./output/{name}/rsimacd_df.csv")
-    output["psar"] = pd.read_csv(f"./output/{name}/psar_df.csv")
+    # output["psar"] = pd.read_csv(f"./output/{name}/psar_df.csv")
     output["ichimoku_df_current"] = pd.read_csv(f"./output/{name}/ichimoku_df_current.csv")
     output["ichimoku_df_future"] = pd.read_csv(f"./output/{name}/ichimoku_df_future.csv")
     output["bbands"] = pd.read_csv(f"./output/{name}/bbands_df.csv")
     output_dataframes.append(output)
 
 def rsigenerate(df, name):
-    rsi_trace = go.Scatter(x=df['Date'], y=df['RSI'], mode='lines', name='RSI', line=dict(color='blue'))
+    fig = go.Figure()
+    # rsi_trace = go.Scatter(x=df['Date'], y=df['RSI'], mode='lines', name='RSI', line=dict(color='blue'))
+    close_line = go.Scatter(x=df['Date'],y=df['Close'],name='Close Price',line=dict(color='white'))
     overbought_line = go.Scatter(x=df['Date'], y=[70] * len(df), mode='lines', name='Overbought (70)', line=dict(color='red', dash='dash'))
     oversold_line = go.Scatter(x=df['Date'], y=[30] * len(df), mode='lines', name='Oversold (30)', line=dict(color='green', dash='dash'))
-    rsi_fig = go.Figure(data=[rsi_trace, overbought_line, oversold_line])
-    rsi_fig.update_layout(title=f'Relative Strength Index (RSI) of {name}', xaxis_title='Date', yaxis_title='RSI Value',yaxis=dict(range=[0, 100]), template='plotly_dark')
-    return(rsi_fig)
+    fig.add_trace(close_line)
+    # fig.add_trace(rsi_trace)
+    fig.add_trace(overbought_line)
+    fig.add_trace(oversold_line)
+    fig.update_layout(title=f'Relative Strength Index (RSI) of {name}', xaxis_title='Date', yaxis_title='RSI Value',yaxis=dict(range=[0, 100]), template='plotly_dark')
+    return(fig)
 
 def macdgenerate(df, name):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df['Date'],y=df['MACD'],name='MACD Line',line=dict(color='blue')))
-    fig.add_trace(go.Scatter(x=df['Date'],y=df['MACD_Signal'],name='Signal Line',line=dict(color='red')))
-    fig.add_trace(go.Bar(x=df['Date'],y=df['MACD_Histogram'],name='MACD Histogram',marker=dict(color='green' if df['MACD_Histogram'].iloc[-1] > 0 else 'red')))
-    fig.update_layout(title=f'MACD of f{name}',xaxis_title='Date',yaxis_title='Value',barmode='relative',  height=600,template='plotly_dark')
+    df['12expmovingaverage'] = df['Close'].ewm(span=12, adjust=False).mean()
+    df['26expmovingaverage'] = df['Close'].ewm(span=26, adjust=False).mean()
+    df['MACD'] = df['12expmovingaverage'] - df['26expmovingaverage']
+    df['Signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
+    df['Histogram'] = df['MACD'] - df['Signal']
+    fig = make_subplots(rows=1, cols=1, shared_xaxes=True, subplot_titles=('MACD'))
+    fig.add_trace(go.Scatter(x=df["Date"],y=df['MACD'],mode='lines',name='MACD',line=dict(color='blue')), row=1, col=1)
+    fig.add_trace(go.Scatter(x=df["Date"],y=df['Signal'],mode='lines',name='Signal',line=dict(color='red')), row=1, col=1)
+    fig.add_trace(go.Bar(x=df["Date"],y=df['Histogram'],name='MACD Histogram',marker_color=(df['Histogram'] > 0).map({True: 'green', False: 'red'})), row=1, col=1)
+    fig.update_layout(title=f'MACD of {name}',xaxis_title='Date',yaxis_title='Price',xaxis_rangeslider_visible=False,height=800,width=1000, template='plotly_dark')
     return(fig)
 
 def bbandsgenerate(df, closedf, name):
@@ -44,43 +55,62 @@ def bbandsgenerate(df, closedf, name):
     fig.update_layout(title=f'Bollinger Bands of {name}',xaxis_title='Date',yaxis_title='Price',height=600,template='plotly_dark')
     return(fig)
 
-def ichimokufuturegenerate(df, closedf, name):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df['Date'],y=closedf['Close'],name='Close Price',line=dict(color='blue')))
-    fig.add_trace(go.Scatter(x=df['Date'],y=df['ISA_9'],name='Senkou Span A (Leading Span A)',line=dict(color='orange'),fill=None))
-    fig.add_trace(go.Scatter(x=df['Date'],y=df['ISB_26'],name='Senkou Span B (Leading Span B)',line=dict(color='purple'),fill='tonexty',fillcolor='rgba(128, 0, 128, 0.2)'))
-    fig.update_layout(title=f'Ichimoku Cloud with Future Clouds of {name}',xaxis_title='Date',yaxis_title='Price',height=600,template='plotly_dark')
-    return(fig)
 
 def ichimokucurrentgenerate(df, closedf, name):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df['Date'],y=closedf['Close'],name='Close Price',line=dict(color='blue')))
-    fig.add_trace(go.Scatter(x=df['Date'],y=df['ITS_9'],name='Tenkan-sen (Conversion Line)',line=dict(color='red', dash='dash')))
-    fig.add_trace(go.Scatter(x=df['Date'],y=df['IKS_26'],name='Kijun-sen (Base Line)',line=dict(color='green', dash='dash')))
-    fig.add_trace(go.Scatter(x=df['Date'],y=df['ISA_9'],name='Senkou Span A (Leading Span A)',line=dict(color='orange'),fill=None))
-    fig.add_trace(go.Scatter(x=df['Date'],y=df['ISB_26'],name='Senkou Span B (Leading Span B)',line=dict(color='purple'),fill='tonexty',fillcolor='rgba(128, 0, 128, 0.2)'))
+    fig.add_trace(go.Scatter(x=df['Date'],y=df['ITS_9'],name='Tenkan-sen (Conversion Line)',line=dict(color='white', dash='dash')))
+    fig.add_trace(go.Scatter(x=df['Date'],y=df['IKS_26'],name='Kijun-sen (Base Line)',line=dict(color='red', dash='dash')))
+    fig.add_trace(go.Scatter(x=df['Date'],y=df['ISA_9'],name='Senkou Span A (Leading Span A)',line=dict(color='green'),fill=None))
+    fig.add_trace(go.Scatter(x=df['Date'],y=df['ISB_26'],name='Senkou Span B (Leading Span B)',line=dict(color='brown'),fill='tonexty',fillcolor='rgba(0, 100, 80, 0.2)'))
     fig.add_trace(go.Scatter(x=df['Date'],y=df['ICS_26'],name='Chikou Span (Lagging Span)',line=dict(color='grey', dash='dot')))
     fig.update_layout(title=f'Ichimoku Cloud with Current Clouds of {name}',xaxis_title='Date',yaxis_title='Price',height=600,template='plotly_dark')
     return(fig)
 
-
-def psargenerate(df, closedf, name):
+def closegeneratedark(df, name):
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df['Date'], y=closedf['Close'], mode='lines', name='Close'))
-    fig.add_trace(go.Scatter(x=df['Date'], y=df['PSAR'], mode='markers', name='Parabolic SAR', marker=dict(color='blue', size=6)))
-    fig.add_trace(go.Scatter(x=df[df['PSARl_0.02_0.2'] == 1]['Date'], y=closedf[df['PSARl_0.02_0.2'] == 1]['Close'], mode='markers', name='Long', marker=dict(color='green', size=8, symbol='triangle-up')))
-    fig.add_trace(go.Scatter(x=df[df['PSARs_0.02_0.2'] == -1]['Date'], y=closedf[df['PSARs_0.02_0.2'] == -1]['Close'], mode='markers', name='Short', marker=dict(color='red', size=8, symbol='triangle-down')))
-    fig.add_trace(go.Scatter(x=df[df['PSARr_0.02_0.2'] != 0]['Date'], y=closedf[df['PSARr_0.02_0.2'] != 0]['Close'], mode='markers', name='Reversal', marker=dict(color='orange', size=8, symbol='diamond')))
-    fig.update_layout(title=f'Parabolic SAR of {name}', xaxis_title='Date', yaxis_title='Price', xaxis_rangeslider_visible=False, template='plotly_dark')
+    fig.add_trace(go.Candlestick(x=df.index,open=df['Open'],high=df['High'],low=df['Low'],close=df['Close'],name='Candlesticks'))
+    fig.update_layout(title=f'Candlesticks of {name}',xaxis_title='Date',yaxis_title='Price',height=600,template='plotly_dark',xaxis_rangeslider_visible=False, width=1500)
     return(fig)
 
+def closegeneratelight(df, name):
+    fig = go.Figure()
+    fig.add_trace(go.Candlestick(x=df.index,open=df['Open'],high=df['High'],low=df['Low'],close=df['Close'],name='Candlesticks'))
+    fig.update_layout(title=f'Candlesticks of {name}',xaxis_title='Date',yaxis_title='Price',height=600,xaxis_rangeslider_visible=False, width=1500)
+    return(fig)
 
+# def ichimokufuturegenerate(df, closedf, name):
+#     fig = go.Figure()
+#     fig.add_trace(go.Scatter(x=df['Date'],y=closedf['Close'],name='Close Price',line=dict(color='blue')))
+#     fig.add_trace(go.Scatter(x=df['Date'],y=df['ISA_9'],name='Senkou Span A (Leading Span A)',line=dict(color='orange'),fill=None))
+#     fig.add_trace(go.Scatter(x=df['Date'],y=df['ISB_26'],name='Senkou Span B (Leading Span B)',line=dict(color='purple'),fill='tonexty',fillcolor='rgba(128, 0, 128, 0.2)'))
+#     fig.update_layout(title=f'Ichimoku Cloud with Future Clouds of {name}',xaxis_title='Date',yaxis_title='Price',height=600,template='plotly_dark')
+#     return(fig)
+
+import ta
+import ta.momentum
+import ta.trend
+
+def psargenerate(closedf, name):
+    # fig = go.Figure()
+    # fig.add_trace(go.Candlestick(x=df['Date'], close=closedf['Close'], name='Close'))
+    # fig.add_trace(go.Scatter(x=df['Date'], y=df['PSAR'], mode='markers', name='Parabolic SAR', marker=dict(color='blue', size=6)))
+    # fig.add_trace(go.Scatter(x=df[df['PSARl_0.02_0.2'] == 1]['Date'], y=closedf[df['PSARl_0.02_0.2'] == 1]['Close'], mode='markers', name='Long', marker=dict(color='green', size=8, symbol='triangle-up')))
+    # fig.add_trace(go.Scatter(x=df[df['PSARs_0.02_0.2'] == -1]['Date'], y=closedf[df['PSARs_0.02_0.2'] == -1]['Close'], mode='markers', name='Short', marker=dict(color='red', size=8, symbol='triangle-down')))
+    # fig.add_trace(go.Scatter(x=df[df['PSARr_0.02_0.2'] != 0]['Date'], y=closedf[df['PSARr_0.02_0.2'] != 0]['Close'], mode='markers', name='Reversal', marker=dict(color='orange', size=8, symbol='diamond')))
+    # fig.update_layout(title=f'Parabolic SAR of {name}', xaxis_title='Date', yaxis_title='Price', xaxis_rangeslider_visible=False, template='plotly_dark')
+    # return(fig)
+    closedf['psar'] = ta.trend.PSARIndicator(closedf['High'] , closedf['Low'] , closedf['Close'] , 0.02 , 0.02 , fillna=False).psar()
+    fig = go.Figure(data=[go.Candlestick(x=closedf.index,open=closedf['Open'],high=closedf['High'],                                        low=closedf['Low'],close=closedf['Close'],name='Candlesticks')])
+    fig.add_trace(go.Scatter(x=closedf.index, y=closedf['psar'],mode='markers',marker=dict(color='red', size=5),name='PSAR'))
+    fig.update_layout(title=f'PSAR of {name}',xaxis_title='',yaxis_title='Price',xaxis_rangeslider_visible=False, template='plotly_dark')
+    return(fig)
 
 def write_outputs():
     for stock in output_dataframes:
         name = stock["name"]
         rsimacd = stock["rm"]
-        psardf = stock["psar"]
+        # psardf = stock["psar"]
         bbands = stock["bbands"]
         ichimokucurrentdf = stock["ichimoku_df_current"]
         ichimokufuturedf = stock["ichimoku_df_current"]
@@ -94,15 +124,19 @@ def write_outputs():
         macdgraph.write_image(f"{save_dir}macd.png")
         ichimokucurrentgraph = ichimokucurrentgenerate(ichimokucurrentdf, rsimacd, name)
         ichimokucurrentgraph.write_image(f"{save_dir}ichimokucurrent.png")
-        ichimokufuturetgraph = ichimokucurrentgenerate(ichimokufuturedf, rsimacd, name)
-        ichimokufuturetgraph.write_image(f"{save_dir}ichimokufuture.png")
-        psargraph = psargenerate(psardf, rsimacd, name)
+        # ichimokufuturetgraph = ichimokucurrentgenerate(ichimokufuturedf, rsimacd, name)
+        # ichimokufuturetgraph.write_image(f"{save_dir}ichimokufuture.png")
+        psargraph = psargenerate(rsimacd, name)
         psargraph.write_image(f"{save_dir}psar.png")
+        closedark = closegeneratedark(rsimacd, name)
+        closedark.write_image(f"{save_dir}closedark{name}.png")
+        closelight = closegeneratelight(rsimacd, name)
+        closelight.write_image(f"{save_dir}closelight{name}.png")
 
-# write_outputs()
+write_outputs()
 
-def comparative_analysis():
-    scores = []
-    for stock in output_dataframes:
-        name = stock["name"]
-        rsiscore = 100-stock["rm"]
+# def comparative_analysis():
+#     scores = []
+#     for stock in output_dataframes:
+#         name = stock["name"]
+#         rsiscore = 100-stock["rm"]

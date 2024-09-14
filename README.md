@@ -1,11 +1,11 @@
 # Pandas, Pandas_ta and Plotly to visualize and analyze stock close price data
 
-## Prerequesites
+## Prerequisites
 Dataset csv files to be read in a folder in same directory `./datasets`
 Python version used: 3.12.5 <br>
 Libraries to be installed: pandas, pandas_ta (Latest Release, see below), plotly, ta, kaleido, numpy (1.26.4)<br> <br>
 
-<b>Important: </b> pandas_ta uses an older version of numpy where "nan" was treated differently. <br>
+<b>Important: </b> pandas_ta uses an older version of numpy where "nan" was treated differently. pandas_ta also throws an error with the default setuptools installed with python 3, so in the venv it is upgraded to the newest verson.<br>
 <b>Set up a new virtualenv if numpy already exists on your system, then install pandas_ta using <b> <br> 
 `pip install -U git+https://github.com/twopirllc/pandas-ta`
 

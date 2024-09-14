@@ -16,7 +16,7 @@ Uses <b>os</b> to automate the reading and writing of datasets and outputs. Uses
 1. Clone the repository
 
 ```bash
-git clone https://github.com/crux-bphc/bits-gpt.git
+git clone https://github.com/akshith27hiremath/Stock-Analysis-with-Pandas-and-Plotly.git
 ```
 
 2. Create a virtual environment

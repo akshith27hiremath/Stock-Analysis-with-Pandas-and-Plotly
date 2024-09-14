@@ -10,11 +10,16 @@ import ta.momentum
 import ta.trend
 import shutil
 
-stock_dataset_filenames = [file for file in os.listdir("./datasets") if file.endswith('.csv')] # use os to automatically iterate
+COMMONTRAILINGCHARACTERS = ".NS.csv"
+DATASETFOLDERNAME = "datasets"
 
+stock_dataset_filenames = [file for file in os.listdir(f"./{DATASETFOLDERNAME}") if file.endswith('.csv')] # use os to automatically iterate
 stock_dataframes = []
+
 for dataset in stock_dataset_filenames:
-    stock_dataframes.append({"name": dataset[:-7], "df": pd.read_csv(f"./datasets/{dataset}")}) # shortern string by eliminating common characters
+    stock_dataframes.append({"name": dataset[:-len(COMMONTRAILINGCHARACTERS)], "df": pd.read_csv(f"./{DATASETFOLDERNAME}/{dataset}")}) # shortern string by eliminating common characters
+stock_names = [file[:-7] for file in stock_dataset_filenames]
+print(stock_names)
 
 for stock in stock_dataframes:
     df = stock["df"]
@@ -27,8 +32,8 @@ for stock in stock_dataframes:
     bbands_df = pta.bbands(df['Close'], length=20, std=2)
     stock['bbands_df'] = bbands_df
     (ichimoku_df_current, ichimoku_df_future) = pta.ichimoku(df['High'], df['Low'], df['Close'], tenkan=9, kijun=26, senkou=52)
-    stock["ichimoku_df_current"] = ichimoku_df_current
-    stock["ichimoku_df_future"] = ichimoku_df_future    # df = pd.concat([df, ichimoku_df_current], axis=1)
+    stock['ichimoku_df_current'] = ichimoku_df_current
+    stock['ichimoku_df_future'] = ichimoku_df_future    # df = pd.concat([df, ichimoku_df_current], axis=1)
     # print(df.info())
     # print(df.columns)
     stock["df"] = df
@@ -37,12 +42,12 @@ shutil.rmtree("./output", ignore_errors=True)
 os.mkdir(f"./output")
 
 for stock in stock_dataframes:
-    stockname = stock["name"]
-    df = stock["df"]
-    ichimoku_df_current = stock["ichimoku_df_current"]
-    ichimoku_df_future = stock["ichimoku_df_future"]
-    # psar_df = stock["psar_df"]
-    bbands_df = stock["bbands_df"]
+    stockname = stock['name']
+    df = stock['df']
+    ichimoku_df_current = stock['ichimoku_df_current']
+    ichimoku_df_future = stock['ichimoku_df_future']
+    # psar_df = stock['psar_df']
+    bbands_df = stock['bbands_df']
     os.mkdir(f"./output/{stockname}")
     df.to_csv(f"./output/{stockname}/rsimacd_df.csv", index=True)
     ichimoku_df_current.to_csv(f"./output/{stockname}/ichimoku_df_current.csv", index=True)
@@ -51,21 +56,16 @@ for stock in stock_dataframes:
     bbands_df.to_csv(f"./output/{stockname}/bbands_df.csv", index=True)
 
 
-
-stock_dataset_filenames = [file for file in os.listdir("./datasets") if file.endswith('.csv')]
-stock_names = [file[:-7] for file in stock_dataset_filenames]
-
-print(stock_names)
 output_dataframes = []
 
 for name in stock_names:
     output = {}
-    output["name"] = name
-    output["rm"] = pd.read_csv(f"./output/{name}/rsimacd_df.csv")
+    output['name'] = name
+    output['rm'] = pd.read_csv(f"./output/{name}/rsimacd_df.csv")
     # output["psar"] = pd.read_csv(f"./output/{name}/psar_df.csv")
-    output["ichimoku_df_current"] = pd.read_csv(f"./output/{name}/ichimoku_df_current.csv")
-    output["ichimoku_df_future"] = pd.read_csv(f"./output/{name}/ichimoku_df_future.csv")
-    output["bbands"] = pd.read_csv(f"./output/{name}/bbands_df.csv")
+    output['ichimoku_df_current'] = pd.read_csv(f"./output/{name}/ichimoku_df_current.csv")
+    output['ichimoku_df_future'] = pd.read_csv(f"./output/{name}/ichimoku_df_future.csv")
+    output['bbands'] = pd.read_csv(f"./output/{name}/bbands_df.csv")
     output_dataframes.append(output)
 
 def rsigenerate(df, name):

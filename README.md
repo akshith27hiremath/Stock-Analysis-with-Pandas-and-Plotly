@@ -32,7 +32,7 @@ python -m venv .venv
 pip uninstall numpy
 pip install -U git+https://github.com/twopirllc/pandas-ta
 pip install ta plotly kaleido
- pip install --upgrade setuptools
+pip install --upgrade setuptools
 ```
 
 4. Move input data into correct folder
